@@ -86,6 +86,16 @@ extension TrackersCollectionView: UICollectionViewDelegate{
     func collectionView(_ collectionView: UICollectionView, contextMenuConfigurationForItemAt indexPath: IndexPath, point: CGPoint) -> UIContextMenuConfiguration? {
         return contextMenuConfiguration(for: indexPath)
     }
+    
+    func collectionView(_ collectionView: UICollectionView, previewForHighlightingContextMenuWithConfiguration configuration: UIContextMenuConfiguration) -> UITargetedPreview? {
+        guard let indexPath = configuration.identifier as? IndexPath,
+              let cell = cellForItem(at: indexPath) as? TrackersCollectionViewCell
+        else {
+            print("nil")
+            return nil}
+        
+        return cell.getPreview()
+    }
 }
 
 // MARK: - UICollectionViewDelegateFlowLayout
@@ -133,35 +143,29 @@ extension TrackersCollectionView{
     }
     
     func contextMenuConfiguration(for indexPath: IndexPath) -> UIContextMenuConfiguration {
-        let fixAction = UIAction(title: "Закрепить") { [weak self] action in
+        let pinAction = UIAction(title: NSLocalizedString("Pin", comment: "")) { [weak self] action in
               guard let self = self else { return }
               let tracker = self.cells[indexPath.section].trackers[indexPath.item]
             
-             // self.delegateVC?.fixTracker(tracker)
+              self.delegateVC?.pinTracker(tracker)
           }
           
-          let editAction = UIAction(title: "Редактировать") { [weak self] action in
+          let editAction = UIAction(title: NSLocalizedString("Edit", comment: "")) { [weak self] action in
               guard let self = self else { return }
               let tracker = self.cells[indexPath.section].trackers[indexPath.item]
               
-              //self.delegateVC?.editTracker(tracker)
+              self.delegateVC?.editTracker(tracker)
           }
           
-          let deleteAction = UIAction(title: "Удалить", attributes: .destructive) { [weak self] action in
+          let deleteAction = UIAction(title: NSLocalizedString("Delete", comment: ""), attributes: .destructive) { [weak self] action in
               guard let self = self else { return }
               let tracker = self.cells[indexPath.section].trackers[indexPath.item]
               
-              //self.delegateVC?.deleteTracker(tracker)
+              self.delegateVC?.deleteTracker(tracker)
           }
-        
-        //TODO: Сделать превью без кнопки и счетчика
-        var previewProvider: UIContextMenuContentPreviewProvider?{
-            let cell = cellForItem(at: indexPath) as? TrackersCollectionViewCell
-            return cell?.getPreview
-        }
-        
-        return UIContextMenuConfiguration(identifier: nil, previewProvider: nil, actionProvider: { _ in
-            UIMenu(title: "", children: [fixAction,editAction, deleteAction])
+    
+        return UIContextMenuConfiguration(identifier: NSIndexPath(item: indexPath.item, section: indexPath.section), previewProvider: nil, actionProvider: { _ in
+            UIMenu(title: "", children: [pinAction,editAction, deleteAction])
         })
     }
 }

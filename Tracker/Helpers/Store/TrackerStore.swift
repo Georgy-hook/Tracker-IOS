@@ -14,6 +14,7 @@ enum TrackerStoreError: Error{
     case decodingErrorInvalidColor
     case decodingErrorInvalidEmoji
     case decodingErrorInvalidCategory
+    case deletingError
 }
 
 struct TrackerStoreUpdate {
@@ -162,15 +163,41 @@ final class TrackerStore: NSObject{
             throw error
         }
     }
-
-
-
     
+    func getObject(by uuid:UUID) throws -> TrackerCoreData? {
+        let fetchRequest: NSFetchRequest<TrackerCoreData> = TrackerCoreData.fetchRequest()
+        let predicate = NSPredicate(format: "id == %@", uuid as CVarArg)
+        fetchRequest.predicate = predicate
+        
+        guard let trackerCoreData = fetchedResultsController?.fetchedObjects?.first else {
+            print("Tracker not found")
+            return nil
+        }
+        
+        return trackerCoreData
+    }
     func isEmpty() -> Bool {
         guard let objects = self.fetchedResultsController?.fetchedObjects else {
             return true
         }
         return objects.isEmpty
+    }
+    
+    func deleteObject(at uuid:UUID) throws{
+        guard let fetchedResultsController = fetchedResultsController,
+              let objects = fetchedResultsController.fetchedObjects else {
+            return
+        }
+        
+        if let objectToDelete = objects.first(where: {
+            $0.id == uuid
+        }){
+            context.delete(objectToDelete)
+            try context.save()
+            try fetchedResultsController.performFetch()
+        } else {
+            throw TrackerStoreError.deletingError
+        }
     }
 }
 
@@ -263,6 +290,7 @@ extension TrackerStore{
             sectionNameKeyPath: nil,
             cacheName: nil
         )
+        controller.delegate = self
         
         self.fetchedResultsController = controller
         

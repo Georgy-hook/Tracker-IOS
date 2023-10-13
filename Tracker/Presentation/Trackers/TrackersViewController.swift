@@ -12,6 +12,9 @@ protocol TrackersViewControllerProtocol: AnyObject{
     func removeCompletedTracker(_ tracker: Tracker)
     func countRecords(forUUID uuid: UUID) -> Int
     func getCurrentDate() -> Date
+    func editTracker(_ tracker: Tracker)
+    func deleteTracker(_ tracker: Tracker)
+    func pinTracker(_ tracker: Tracker)
 }
 
 final class TrackersViewController: UIViewController {
@@ -20,7 +23,7 @@ final class TrackersViewController: UIViewController {
     private let searchController: UISearchController = {
         let search = UISearchController(searchResultsController: nil)
         search.searchBar.isUserInteractionEnabled = false
-        search.searchBar.placeholder = "Поиск"
+        search.searchBar.placeholder = NSLocalizedString("Search", comment: "")
         search.hidesNavigationBarDuringPresentation = false
         search.searchBar.tintColor = UIColor(named: "YP Blue")
         search.searchBar.searchTextField.textColor = UIColor(named: "YP Black")
@@ -31,8 +34,12 @@ final class TrackersViewController: UIViewController {
         let datePicker = UIDatePicker()
         datePicker.datePickerMode = .date
         datePicker.preferredDatePickerStyle = .compact
+        datePicker.overrideUserInterfaceStyle = .light
         datePicker.locale = Locale(identifier: "ru_RU")
         datePicker.tintColor = UIColor(named: "YP Blue")
+        datePicker.layer.cornerRadius = 8
+        datePicker.clipsToBounds = true
+        datePicker.backgroundColor = UIColor(named: "DatePicker Background")
         return datePicker
     }()
     
@@ -45,7 +52,7 @@ final class TrackersViewController: UIViewController {
     
     private let initialLabel: UILabel = {
         let label = UILabel()
-        label.text = "Что будем отслеживать?"
+        label.text = NSLocalizedString("What will we track?", comment: "")
         label.textColor = UIColor(named: "YP Black")
         label.font = UIFont.systemFont(ofSize: 12, weight: .medium)
         label.translatesAutoresizingMaskIntoConstraints = false
@@ -131,7 +138,7 @@ extension TrackersViewController{
 //MARK: - NavigationBar
 extension TrackersViewController{
     private func configureNavBar(){
-        self.title = "Трекеры"
+        self.title = NSLocalizedString("Trackers", comment: "")
         self.navigationController?.navigationBar.prefersLargeTitles = true
         self.navigationController?.navigationBar.tintColor = UIColor(named: "YP Black")
         
@@ -170,6 +177,18 @@ extension TrackersViewController:UISearchResultsUpdating{
 
 //MARK: - TrackersViewControllerProtocol
 extension TrackersViewController:TrackersViewControllerProtocol {
+    func editTracker(_ tracker: Tracker) {
+        viewModel.editTracker(tracker)
+    }
+    
+    func deleteTracker(_ tracker: Tracker) {
+        viewModel.deleteTracker(tracker)
+    }
+    
+    func pinTracker(_ tracker: Tracker) {
+        viewModel.pinTracker(tracker)
+    }
+    
     func addCompletedTracker(_ tracker: Tracker) {
         viewModel.addCompletedTracker(tracker)
     }
@@ -187,7 +206,6 @@ extension TrackersViewController:TrackersViewControllerProtocol {
     }
 }
 
-//MARK: - Filter methods
 extension TrackersViewController{
     private func updatePlaceholder(for state: PlaceholderState) {
         placeholderImageView.isHidden = false
@@ -195,10 +213,10 @@ extension TrackersViewController{
         switch state {
         case .noData:
             placeholderImageView.image = UIImage(named: "RoundStar")
-            initialLabel.text = "Что будем отслеживать?"
+            initialLabel.text = NSLocalizedString("What will we track?", comment: "")
         case .notFound:
             placeholderImageView.image = UIImage(named: "NotFound")
-            initialLabel.text = "Ничего не найдено"
+            initialLabel.text = NSLocalizedString("Nothing found", comment: "")
         case .hide:
             searchController.searchBar.isUserInteractionEnabled = true
             placeholderImageView.isHidden = true

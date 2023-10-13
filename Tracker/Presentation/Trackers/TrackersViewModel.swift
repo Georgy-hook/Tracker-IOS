@@ -36,6 +36,7 @@ final class TrackersViewModel{
     private let dateFormatter = AppDateFormatter.shared
     private let trackerRecordStore = TrackerRecordStore()
     private let tempStorage = TempStorage.shared
+    private let analyticsService = AnalyticsService()
     
     init() {
         trackerStore.delegate = self
@@ -64,7 +65,7 @@ final class TrackersViewModel{
         do {
             try trackerStore.fetchRelevantTrackers(forDay: currentDay)
             self.trackers = trackerStore.trackers
-            currentState = trackerStore.isEmpty() ? .notFound:.hide
+            currentState = trackerStore.isEmpty() ? .noData:.hide
         }
         catch {
            print(error)
@@ -83,6 +84,7 @@ final class TrackersViewModel{
     func addCompletedTracker(_ tracker: Tracker) {
         let newRecord = TrackerRecord(recordID: tracker.id, date: currentDate)
         do{
+            analyticsService.report(event: .click, screen: .main, item: .track)
             try trackerRecordStore.addNewRecord(newRecord)
         } catch{
             print("Error with completedTrackers: \(error)")
@@ -99,6 +101,23 @@ final class TrackersViewModel{
     
     func countRecords(forUUID uuid: UUID) -> Int{
         return trackerRecordStore.countRecords(forUUID: uuid)
+    }
+    
+    func editTracker(_ tracker: Tracker) {
+        
+    }
+    
+    func deleteTracker(_ tracker: Tracker) {
+        do{
+            try trackerStore.deleteObject(at: tracker.id)
+            
+        } catch{
+            print(error)
+        }
+    }
+    
+    func pinTracker(_ tracker: Tracker) {
+        
     }
 }
 
