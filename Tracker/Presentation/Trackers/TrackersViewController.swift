@@ -12,7 +12,7 @@ protocol TrackersViewControllerProtocol: AnyObject{
     func removeCompletedTracker(_ tracker: Tracker)
     func countRecords(forUUID uuid: UUID) -> Int
     func getCurrentDate() -> Date
-    func editTracker(_ tracker: Tracker)
+    func editTracker(with tracker: Tracker, and category: String)
     func deleteTracker(_ tracker: Tracker)
     func pinTracker(_ tracker: Tracker)
 }
@@ -177,8 +177,8 @@ extension TrackersViewController:UISearchResultsUpdating{
 
 //MARK: - TrackersViewControllerProtocol
 extension TrackersViewController:TrackersViewControllerProtocol {
-    func editTracker(_ tracker: Tracker) {
-        present(HabbitViewController(mode: .edit(ID: tracker.id)), animated: true)
+    func editTracker(with tracker: Tracker, and category: String) {
+        present(HabbitViewController(mode: .edit(tracker: tracker, category: category)), animated: true)
     }
     
     func deleteTracker(_ tracker: Tracker) {

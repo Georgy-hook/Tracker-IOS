@@ -29,13 +29,13 @@ class TempStorage {
     
     private init() {}
     
-    func setTracker(_ tracker: Tracker?) {
-        guard let tracker = tracker else { return }
+    func set(with tracker: Tracker, and category: String) {
         tempTracker.id = tracker.id
         tempTracker.name = tracker.name
         tempTracker.color = tracker.color
         tempTracker.emoji = tracker.emoji
         tempTracker.schedule = tracker.schedule
+        tempTracker.category = category
     }
     
     func setID(_ id: UUID) {
@@ -71,6 +71,21 @@ class TempStorage {
         guard let category = tempTracker.category else { return nil }
         
         return category
+    }
+    
+    func getName() -> String?{
+        guard let name = tempTracker.name else { return nil }
+        return name
+    }
+    
+    func getEmoji() -> String?{
+        guard let emoji = tempTracker.emoji else { return nil }
+        return emoji
+    }
+    
+    func getColor() -> String?{
+        guard let color = tempTracker.color else { return nil }
+        return color
     }
     
     func buildTracker() -> Tracker? {

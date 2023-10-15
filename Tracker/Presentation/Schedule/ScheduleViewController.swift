@@ -82,7 +82,6 @@ extension ScheduleViewController{
     @objc private func didAddButtonTapped(){
         if let presentingViewController = presentingViewController as? HabbitViewController {
             presentingViewController.shouldUpdateUI()
-            presentingViewController.sectionsCollectionView.reloadData()
         }
         dismiss(animated: true)
     }

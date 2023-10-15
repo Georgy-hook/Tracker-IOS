@@ -153,8 +153,8 @@ extension TrackersCollectionView{
           let editAction = UIAction(title: NSLocalizedString("Edit", comment: "")) { [weak self] action in
               guard let self = self else { return }
               let tracker = self.cells[indexPath.section].trackers[indexPath.item]
-              
-              self.delegateVC?.editTracker(tracker)
+              let category = cells[indexPath.section].title
+              self.delegateVC?.editTracker(with: tracker, and: category)
           }
           
           let deleteAction = UIAction(title: NSLocalizedString("Delete", comment: ""), attributes: .destructive) { [weak self] action in

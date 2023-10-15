@@ -8,19 +8,24 @@ import UIKit
 
 enum HabbitViewControllerMode {
     case create
-    case edit(ID: UUID)
+    case edit(tracker: Tracker, category: String)
 }
 
 protocol HabbitViewControllerProtocol: AnyObject{
     func presentCategoryVC()
     func presentSheduleVC()
     func shouldUpdateUI()
+    func selectItem(at indexPath: IndexPath)
     var isIrregular:Bool {get}
     func setEmoji(_ emoji:String)
     func setColor(_ color:String)
     func setName(_ name:String)
     func getCategory() -> String
     func getShedule() -> [Int]
+    func getName() -> String
+    func getEmoji() -> String
+    func getColor() -> String
+
 }
 
 final class HabbitViewController: UIViewController {
@@ -193,6 +198,22 @@ extension HabbitViewController:HabbitViewControllerProtocol{
     
     func getShedule() -> [Int]{
         viewModel.getShedule()
+    }
+    
+    func getName() -> String{
+        return viewModel.getName()
+    }
+    
+    func getEmoji() -> String{
+        return viewModel.getEmoji()
+    }
+    
+    func getColor() -> String{
+        return viewModel.getColor()
+    }
+    
+    func selectItem(at indexPath: IndexPath){
+        sectionsCollectionView.selectItem(at: indexPath, animated: true, scrollPosition: .centeredHorizontally)
     }
 }
 

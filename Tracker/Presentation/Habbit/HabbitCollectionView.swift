@@ -4,7 +4,6 @@
 //
 //  Created by Georgy on 27.08.2023.
 //
-//TODO: Если видны не все секции ячейки заполняются неправильно
 import UIKit
 
 final class HabbitCollectionView: UICollectionView {
@@ -64,7 +63,9 @@ extension HabbitCollectionView:UICollectionViewDataSource{
         default:
             let cell = dequeueReusableCell(withReuseIdentifier: HabbitCollectionViewCell.reuseId, for: indexPath) as! HabbitCollectionViewCell
             cell.delegateVC = delegateVC
-            cell.set(with: indexPath)
+            let emoji = delegateVC?.getEmoji() ?? ""
+            let color = delegateVC?.getColor() ?? ""
+            cell.set(with: indexPath, emoji, color)
             return cell
         }
     }
@@ -99,6 +100,7 @@ extension HabbitCollectionView:UICollectionViewDelegate{
         view.titleLabel.text = titleLabel
         return view
     }
+    
     func collectionView(_ collectionView: UICollectionView, shouldSelectItemAt indexPath: IndexPath) -> Bool {
         
         collectionView.indexPathsForSelectedItems?.filter({ $0.section == indexPath.section }).forEach({
@@ -108,6 +110,7 @@ extension HabbitCollectionView:UICollectionViewDelegate{
         })
         return true
     }
+    
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         let cell = cellForItem(at: indexPath) as? HabbitCollectionViewCell
         cell?.isSelected(for: indexPath)
@@ -176,4 +179,5 @@ extension HabbitCollectionView{
         
         cell.updateTableView()
     }
+
 }

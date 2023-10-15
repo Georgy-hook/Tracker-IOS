@@ -72,12 +72,11 @@ final class TrackerStore: NSObject{
     
     func addNewTracker(_ tracker:Tracker) throws -> TrackerCoreData{
         let trackerCoreData = TrackerCoreData(context: context)
-        updateTracker(trackerCoreData, with: tracker)
-        try context.save()
+        try updateTracker(trackerCoreData, with: tracker)
         return trackerCoreData
     }
     
-    func updateTracker(_ trackerCoreData: TrackerCoreData, with tracker: Tracker) {
+    func updateTracker(_ trackerCoreData: TrackerCoreData, with tracker: Tracker) throws {
         trackerCoreData.id = tracker.id
         trackerCoreData.name = tracker.name
         trackerCoreData.color = tracker.color
@@ -88,7 +87,8 @@ final class TrackerStore: NSObject{
             schedule.dayOfWeek = Int32(dayOfWeek)
             return schedule
         }
-        trackerCoreData.addToSchedule(NSSet(array: newSchedules))
+        trackerCoreData.schedule = NSSet(array: newSchedules)
+        try context.save()
     }
     
     
