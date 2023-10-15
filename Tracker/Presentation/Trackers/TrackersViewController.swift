@@ -178,7 +178,7 @@ extension TrackersViewController:UISearchResultsUpdating{
 //MARK: - TrackersViewControllerProtocol
 extension TrackersViewController:TrackersViewControllerProtocol {
     func editTracker(_ tracker: Tracker) {
-        viewModel.editTracker(tracker)
+        present(HabbitViewController(mode: .edit(ID: tracker.id)), animated: true)
     }
     
     func deleteTracker(_ tracker: Tracker) {

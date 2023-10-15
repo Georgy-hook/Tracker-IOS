@@ -146,9 +146,12 @@ final class TrackerStore: NSObject{
     }
     
     func getTracker(by uuid: String) throws -> Tracker? {
-        let fetchRequest: NSFetchRequest<TrackerCoreData> = TrackerCoreData.fetchRequest()
-        let predicate = NSPredicate(format: "id == %@", uuid)
-        fetchRequest.predicate = predicate
+        let predicate = NSPredicate(format: "id == %@", uuid as CVarArg)
+        do {
+          try  makeFetchRequest(with: predicate)
+        } catch{
+            print(error)
+        }
         
         
         guard let trackerCoreData = fetchedResultsController?.fetchedObjects?.first else {
@@ -165,10 +168,12 @@ final class TrackerStore: NSObject{
     }
     
     func getObject(by uuid:UUID) throws -> TrackerCoreData? {
-        let fetchRequest: NSFetchRequest<TrackerCoreData> = TrackerCoreData.fetchRequest()
         let predicate = NSPredicate(format: "id == %@", uuid as CVarArg)
-        fetchRequest.predicate = predicate
-        
+        do {
+          try  makeFetchRequest(with: predicate)
+        } catch{
+            print(error)
+        }
         guard let trackerCoreData = fetchedResultsController?.fetchedObjects?.first else {
             print("Tracker not found")
             return nil

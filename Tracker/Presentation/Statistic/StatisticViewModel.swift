@@ -145,7 +145,6 @@ final class StatisticViewModel{
         }
         
         let sortedRecords = trackerRecordStore.completedTrackers.sorted { $0.date < $1.date }
-        
         getStatistics(with: sortedRecords)
     }
 }
@@ -153,11 +152,11 @@ final class StatisticViewModel{
 extension StatisticViewModel: TrackerRecordStoreDelegate{
     func store(_ store: TrackerRecordStore) {
         guard !store.completedTrackers.isEmpty else {
+            currentState = .noData
             return
         }
         
         let sortedRecords = store.completedTrackers.sorted { $0.date < $1.date }
-        
         getStatistics(with: sortedRecords)
     }
 }

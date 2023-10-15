@@ -86,9 +86,11 @@ extension StatisticViewController {
     private func updatePlaceholder(for state: PlaceholderState) {
         switch state {
         case .noData:
+            statisticCollectionView.isHidden = true
             placeholderImageView.isHidden = false
             initialLabel.isHidden = false
         case .hide:
+            statisticCollectionView.isHidden = false
             placeholderImageView.isHidden = true
             initialLabel.isHidden = true
         default:

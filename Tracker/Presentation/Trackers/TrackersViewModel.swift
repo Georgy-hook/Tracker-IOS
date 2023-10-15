@@ -124,5 +124,6 @@ final class TrackersViewModel{
 extension TrackersViewModel:TrackerStoreDelegate{
     func store(_ store: TrackerStore, didUpdate update: TrackerStoreUpdate) {
         self.trackers = store.trackers
+        completedID = trackerRecordStore.getCompletedID(with: currentDate)
     }
 }
