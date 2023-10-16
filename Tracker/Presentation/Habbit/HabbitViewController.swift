@@ -124,6 +124,16 @@ extension HabbitViewController {
         addButton.addTarget(self, action: #selector(didAddButtonTapped), for: .touchUpInside)
         cancelButton.addTarget(self, action: #selector(didCancelButtonTapped), for: .touchUpInside)
         
+        
+        switch viewModel.mode{
+        case .create:
+            titleLabel.text = "Новая привычка"
+            addButton.setTitle("Создать", for: .normal)
+        case .edit(_, _):
+            addButton.setTitle("Сохранить", for: .normal)
+            titleLabel.text = "Редактирование привычки"
+        }
+        
         shouldUpdateUI()
         
     }

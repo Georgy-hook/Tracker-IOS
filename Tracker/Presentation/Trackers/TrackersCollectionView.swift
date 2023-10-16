@@ -12,7 +12,7 @@ final class TrackersCollectionView: UICollectionView {
     private let params = GeometricParams(cellCount: 2, leftInset: 16, rightInset: 16, cellSpacing: 9)
     weak var delegateVC: TrackersViewControllerProtocol?
     
-    private var cells = [TrackerCategory]()
+    private var cells:[TrackerCategory] = []
     private var completedID: Set<UUID> = []
     // MARK: - Initiliazation
     init() {
@@ -134,7 +134,26 @@ extension TrackersCollectionView:UICollectionViewDelegateFlowLayout{
 extension TrackersCollectionView{
     func set(cells: [TrackerCategory]) {
         self.cells = cells
+        setPinnedTrackersIfNeeded()
         self.reloadData()
+    }
+    
+    func setPinnedTrackersIfNeeded(){
+        var hasPinnedTrackers = false
+        var pinnedTrackers:[Tracker] = []
+        cells.forEach{
+            $0.trackers.forEach{
+                if $0.isPinned {
+                    hasPinnedTrackers = true
+                    pinnedTrackers.append($0)
+                }
+            }
+        }
+        
+        if hasPinnedTrackers {
+            let pinnedCategory = TrackerCategory(title: "Закрепленные", trackers: pinnedTrackers)
+            cells.insert(pinnedCategory, at: 0)
+        }
     }
     
     func setCompletedTrackers(with completedID:Set<UUID>){
@@ -143,27 +162,30 @@ extension TrackersCollectionView{
     }
     
     func contextMenuConfiguration(for indexPath: IndexPath) -> UIContextMenuConfiguration {
-        let pinAction = UIAction(title: NSLocalizedString("Pin", comment: "")) { [weak self] action in
-              guard let self = self else { return }
-              let tracker = self.cells[indexPath.section].trackers[indexPath.item]
+        let pinTitle = cells[indexPath.section].trackers[indexPath.item].isPinned ?
+        NSLocalizedString("Unpin", comment: "") : NSLocalizedString("Pin", comment: "")
+        
+        let pinAction = UIAction(title: pinTitle) { [weak self] action in
+            guard let self = self else { return }
+            let tracker = self.cells[indexPath.section].trackers[indexPath.item]
             
-              self.delegateVC?.pinTracker(tracker)
-          }
-          
-          let editAction = UIAction(title: NSLocalizedString("Edit", comment: "")) { [weak self] action in
-              guard let self = self else { return }
-              let tracker = self.cells[indexPath.section].trackers[indexPath.item]
-              let category = cells[indexPath.section].title
-              self.delegateVC?.editTracker(with: tracker, and: category)
-          }
-          
-          let deleteAction = UIAction(title: NSLocalizedString("Delete", comment: ""), attributes: .destructive) { [weak self] action in
-              guard let self = self else { return }
-              let tracker = self.cells[indexPath.section].trackers[indexPath.item]
-              
-              self.delegateVC?.deleteTracker(tracker)
-          }
-    
+            self.delegateVC?.pinTracker(tracker)
+        }
+        
+        let editAction = UIAction(title: NSLocalizedString("Edit", comment: "")) { [weak self] action in
+            guard let self = self else { return }
+            let tracker = self.cells[indexPath.section].trackers[indexPath.item]
+            let category = cells[indexPath.section].title
+            self.delegateVC?.editTracker(with: tracker, and: category)
+        }
+        
+        let deleteAction = UIAction(title: NSLocalizedString("Delete", comment: ""), attributes: .destructive) { [weak self] action in
+            guard let self = self else { return }
+            let tracker = self.cells[indexPath.section].trackers[indexPath.item]
+            
+            self.delegateVC?.deleteTracker(tracker)
+        }
+        
         return UIContextMenuConfiguration(identifier: NSIndexPath(item: indexPath.item, section: indexPath.section), previewProvider: nil, actionProvider: { _ in
             UIMenu(title: "", children: [pinAction,editAction, deleteAction])
         })

@@ -94,6 +94,7 @@ final class TrackersViewModel{
     func removeCompletedTracker(_ tracker: Tracker) {
         do {
             try trackerRecordStore.removeRecord(for: tracker.id, with: currentDate)
+           // completedID = trackerRecordStore.getCompletedID(with: currentDate)
         } catch {
             print("No delete: \(error)")
         }
@@ -117,7 +118,21 @@ final class TrackersViewModel{
     }
     
     func pinTracker(_ tracker: Tracker) {
-        
+        let pinnedTracker = Tracker(id: tracker.id,
+                                    name: tracker.name,
+                                    color: tracker.color,
+                                    emoji: tracker.emoji,
+                                    schedule: tracker.schedule,
+                                    isPinned: !tracker.isPinned)
+        do{
+            guard let object = try trackerStore.getObject(by: tracker.id) else{ return }
+            
+            try trackerStore.updateTracker(object, with: pinnedTracker)
+            
+            filterRelevantTrackers(for: currentDate)
+        } catch{
+            print(error)
+        }
     }
 }
 

@@ -81,6 +81,7 @@ final class TrackerStore: NSObject{
         trackerCoreData.name = tracker.name
         trackerCoreData.color = tracker.color
         trackerCoreData.emoji = tracker.emoji
+        trackerCoreData.isPinned = tracker.isPinned
         
         let newSchedules = tracker.schedule.map { dayOfWeek in
             let schedule = ScheduleCoreData(context: context)
@@ -89,6 +90,7 @@ final class TrackerStore: NSObject{
         }
         trackerCoreData.schedule = NSSet(array: newSchedules)
         try context.save()
+        try fetchedResultsController?.performFetch()
     }
     
     
@@ -106,13 +108,16 @@ final class TrackerStore: NSObject{
             throw TrackerStoreError.decodingErrorInvalidEmoji
         }
         
+        let isPinned = trackerCoreData.isPinned
+        
         let schedule = makeSchedule(from:trackerCoreData.schedule?.allObjects as? [ScheduleCoreData])
         
         return(Tracker(id: id,
                        name: name,
                        color: color,
                        emoji: emoji,
-                       schedule: schedule))
+                       schedule: schedule,
+                       isPinned: isPinned))
     }
     
     func makeSchedule(from scheduleCoreData: [ScheduleCoreData]?) -> [Int]{

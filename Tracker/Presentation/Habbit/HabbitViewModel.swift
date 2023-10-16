@@ -14,7 +14,7 @@ final class HabbitViewModel{
     private let tempStorage = TempStorage.shared
     private let trackerCategoryStore = TrackerCategoryStore()
     private let trackerStore = TrackerStore()
-    private let mode: HabbitViewControllerMode
+    let mode: HabbitViewControllerMode
     
     init(mode:HabbitViewControllerMode) {
         self.mode = mode

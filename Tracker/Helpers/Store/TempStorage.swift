@@ -96,7 +96,8 @@ class TempStorage {
             name: tempTracker.name!,
             color: tempTracker.color!,
             emoji: tempTracker.emoji!,
-            schedule: tempTracker.schedule!
+            schedule: tempTracker.schedule!,
+            isPinned: false
         )
     }
     

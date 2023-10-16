@@ -204,6 +204,17 @@
         }
       }
     },
+    "Unpin" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открепить"
+          }
+        }
+      }
+    },
     "What will we track?" : {
       "extractionState" : "manual",
       "localizations" : {

@@ -140,7 +140,9 @@ final class TrackerCategoryStore: NSObject{
                 return nil
             }
             
-            return Tracker(id: id, name: name, color: color, emoji: emoji, schedule: schedule)
+            let isPinned = trackerEntity.isPinned
+            
+            return Tracker(id: id, name: name, color: color, emoji: emoji, schedule: schedule, isPinned: isPinned)
         }
         
         return TrackerCategory(title: title, trackers: trackers)
