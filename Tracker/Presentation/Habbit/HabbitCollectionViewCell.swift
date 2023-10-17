@@ -63,12 +63,20 @@ extension HabbitCollectionViewCell {
 }
 
 extension HabbitCollectionViewCell{
-    func set(with indexPath:IndexPath){
+    func set(with indexPath:IndexPath, _ emoji:String, _ color:String){
         switch indexPath.section{
         case 1:
             textField.text = Emojes[indexPath.row]
+            if emoji == Emojes[indexPath.row] {
+                delegateVC?.selectItem(at: indexPath)
+                isSelected(for: indexPath)
+            }
         case 2:
             textField.backgroundColor = UIColor(named: "Color selection \(indexPath.row + 1)")
+            if color == "Color selection \(indexPath.row + 1)" {
+                delegateVC?.selectItem(at: indexPath)
+                isSelected(for: indexPath)
+            }
         default:
             break
         }

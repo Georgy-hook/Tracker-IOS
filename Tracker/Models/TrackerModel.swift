@@ -13,6 +13,7 @@ struct Tracker {
     let color: String
     let emoji: String
     let schedule: [Int]
+    let isPinned: Bool 
     
     func getDays() -> [String]{
         let weekdays = self.schedule

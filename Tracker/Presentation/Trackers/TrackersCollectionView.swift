@@ -12,7 +12,7 @@ final class TrackersCollectionView: UICollectionView {
     private let params = GeometricParams(cellCount: 2, leftInset: 16, rightInset: 16, cellSpacing: 9)
     weak var delegateVC: TrackersViewControllerProtocol?
     
-    private var cells = [TrackerCategory]()
+    private var cells:[TrackerCategory] = []
     private var completedID: Set<UUID> = []
     // MARK: - Initiliazation
     init() {
@@ -30,7 +30,7 @@ final class TrackersCollectionView: UICollectionView {
         translatesAutoresizingMaskIntoConstraints = false
         showsHorizontalScrollIndicator = false
         showsVerticalScrollIndicator = false
-        
+        self.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: 66, right: 0)
     }
     
     
@@ -86,6 +86,16 @@ extension TrackersCollectionView: UICollectionViewDelegate{
     func collectionView(_ collectionView: UICollectionView, contextMenuConfigurationForItemAt indexPath: IndexPath, point: CGPoint) -> UIContextMenuConfiguration? {
         return contextMenuConfiguration(for: indexPath)
     }
+    
+    func collectionView(_ collectionView: UICollectionView, previewForHighlightingContextMenuWithConfiguration configuration: UIContextMenuConfiguration) -> UITargetedPreview? {
+        guard let indexPath = configuration.identifier as? IndexPath,
+              let cell = cellForItem(at: indexPath) as? TrackersCollectionViewCell
+        else {
+            print("nil")
+            return nil}
+        
+        return cell.getPreview()
+    }
 }
 
 // MARK: - UICollectionViewDelegateFlowLayout
@@ -103,7 +113,7 @@ extension TrackersCollectionView:UICollectionViewDelegateFlowLayout{
     }
     
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, insetForSectionAt section: Int) -> UIEdgeInsets {
-        return UIEdgeInsets(top: 12, left: params.leftInset, bottom: 16, right: params.rightInset)
+        return UIEdgeInsets(top: 12, left: params.leftInset, bottom: 0, right: params.rightInset)
     }
     
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, minimumInteritemSpacingForSectionAt section: Int) -> CGFloat {
@@ -124,7 +134,26 @@ extension TrackersCollectionView:UICollectionViewDelegateFlowLayout{
 extension TrackersCollectionView{
     func set(cells: [TrackerCategory]) {
         self.cells = cells
+        setPinnedTrackersIfNeeded()
         self.reloadData()
+    }
+    
+    func setPinnedTrackersIfNeeded(){
+        var hasPinnedTrackers = false
+        var pinnedTrackers:[Tracker] = []
+        cells.forEach{
+            $0.trackers.forEach{
+                if $0.isPinned {
+                    hasPinnedTrackers = true
+                    pinnedTrackers.append($0)
+                }
+            }
+        }
+        
+        if hasPinnedTrackers {
+            let pinnedCategory = TrackerCategory(title: NSLocalizedString("Pinned", comment: ""), trackers: pinnedTrackers)
+            cells.insert(pinnedCategory, at: 0)
+        }
     }
     
     func setCompletedTrackers(with completedID:Set<UUID>){
@@ -133,35 +162,32 @@ extension TrackersCollectionView{
     }
     
     func contextMenuConfiguration(for indexPath: IndexPath) -> UIContextMenuConfiguration {
-        let fixAction = UIAction(title: "Закрепить") { [weak self] action in
-              guard let self = self else { return }
-              let tracker = self.cells[indexPath.section].trackers[indexPath.item]
-            
-             // self.delegateVC?.fixTracker(tracker)
-          }
-          
-          let editAction = UIAction(title: "Редактировать") { [weak self] action in
-              guard let self = self else { return }
-              let tracker = self.cells[indexPath.section].trackers[indexPath.item]
-              
-              //self.delegateVC?.editTracker(tracker)
-          }
-          
-          let deleteAction = UIAction(title: "Удалить", attributes: .destructive) { [weak self] action in
-              guard let self = self else { return }
-              let tracker = self.cells[indexPath.section].trackers[indexPath.item]
-              
-              //self.delegateVC?.deleteTracker(tracker)
-          }
+        let pinTitle = cells[indexPath.section].trackers[indexPath.item].isPinned ?
+        NSLocalizedString("Unpin", comment: "") : NSLocalizedString("Pin", comment: "")
         
-        //TODO: Сделать превью без кнопки и счетчика
-        var previewProvider: UIContextMenuContentPreviewProvider?{
-            let cell = cellForItem(at: indexPath) as? TrackersCollectionViewCell
-            return cell?.getPreview
+        let pinAction = UIAction(title: pinTitle) { [weak self] action in
+            guard let self = self else { return }
+            let tracker = self.cells[indexPath.section].trackers[indexPath.item]
+            
+            self.delegateVC?.pinTracker(tracker)
         }
         
-        return UIContextMenuConfiguration(identifier: nil, previewProvider: nil, actionProvider: { _ in
-            UIMenu(title: "", children: [fixAction,editAction, deleteAction])
+        let editAction = UIAction(title: NSLocalizedString("Edit", comment: "")) { [weak self] action in
+            guard let self = self else { return }
+            let tracker = self.cells[indexPath.section].trackers[indexPath.item]
+            let category = cells[indexPath.section].title
+            self.delegateVC?.editTracker(with: tracker, and: category)
+        }
+        
+        let deleteAction = UIAction(title: NSLocalizedString("Delete", comment: ""), attributes: .destructive) { [weak self] action in
+            guard let self = self else { return }
+            let tracker = self.cells[indexPath.section].trackers[indexPath.item]
+            
+            self.delegateVC?.deleteTracker(tracker)
+        }
+        
+        return UIContextMenuConfiguration(identifier: NSIndexPath(item: indexPath.item, section: indexPath.section), previewProvider: nil, actionProvider: { _ in
+            UIMenu(title: "", children: [pinAction,editAction, deleteAction])
         })
     }
 }

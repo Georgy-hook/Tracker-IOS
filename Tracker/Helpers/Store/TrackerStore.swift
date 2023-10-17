@@ -14,6 +14,7 @@ enum TrackerStoreError: Error{
     case decodingErrorInvalidColor
     case decodingErrorInvalidEmoji
     case decodingErrorInvalidCategory
+    case deletingError
 }
 
 struct TrackerStoreUpdate {
@@ -67,32 +68,34 @@ final class TrackerStore: NSObject{
         try makeFetchRequest(with: nil)
     }
     
-  
+    
     
     func addNewTracker(_ tracker:Tracker) throws -> TrackerCoreData{
         let trackerCoreData = TrackerCoreData(context: context)
-        updateTracker(trackerCoreData, with: tracker)
-        try context.save()
+        try updateTracker(trackerCoreData, with: tracker)
         return trackerCoreData
     }
     
-    func updateTracker(_ trackerCoreData: TrackerCoreData, with tracker: Tracker) {
-        trackerCoreData.id = tracker.id
+    func updateTracker(_ trackerCoreData: TrackerCoreData, with tracker: Tracker) throws {
+        trackerCoreData.uuid = tracker.id
         trackerCoreData.name = tracker.name
         trackerCoreData.color = tracker.color
         trackerCoreData.emoji = tracker.emoji
+        trackerCoreData.isPinned = tracker.isPinned
         
         let newSchedules = tracker.schedule.map { dayOfWeek in
             let schedule = ScheduleCoreData(context: context)
             schedule.dayOfWeek = Int32(dayOfWeek)
             return schedule
         }
-        trackerCoreData.addToSchedule(NSSet(array: newSchedules))
+        trackerCoreData.schedule = NSSet(array: newSchedules)
+        try context.save()
+        try fetchedResultsController?.performFetch()
     }
     
     
     func makeTracker(from trackerCoreData: TrackerCoreData) throws -> Tracker{
-        guard let id = trackerCoreData.id else {
+        guard let id = trackerCoreData.uuid else {
             throw TrackerStoreError.decodingErrorInvalidID
         }
         guard let name = trackerCoreData.name else {
@@ -105,13 +108,16 @@ final class TrackerStore: NSObject{
             throw TrackerStoreError.decodingErrorInvalidEmoji
         }
         
+        let isPinned = trackerCoreData.isPinned
+        
         let schedule = makeSchedule(from:trackerCoreData.schedule?.allObjects as? [ScheduleCoreData])
         
         return(Tracker(id: id,
                        name: name,
                        color: color,
                        emoji: emoji,
-                       schedule: schedule))
+                       schedule: schedule,
+                       isPinned: isPinned))
     }
     
     func makeSchedule(from scheduleCoreData: [ScheduleCoreData]?) -> [Int]{
@@ -145,9 +151,12 @@ final class TrackerStore: NSObject{
     }
     
     func getTracker(by uuid: String) throws -> Tracker? {
-        let fetchRequest: NSFetchRequest<TrackerCoreData> = TrackerCoreData.fetchRequest()
-        let predicate = NSPredicate(format: "id == %@", uuid)
-        fetchRequest.predicate = predicate
+        let predicate = NSPredicate(format: "uuid == %@", uuid as CVarArg)
+        do {
+            try  makeFetchRequest(with: predicate)
+        } catch{
+            print(error)
+        }
         
         
         guard let trackerCoreData = fetchedResultsController?.fetchedObjects?.first else {
@@ -162,15 +171,43 @@ final class TrackerStore: NSObject{
             throw error
         }
     }
-
-
-
     
+    func getObject(by uuid:UUID) throws -> TrackerCoreData? {
+        let predicate = NSPredicate(format: "uuid == %@", uuid as CVarArg)
+        do {
+            try  makeFetchRequest(with: predicate)
+        } catch{
+            print(error)
+        }
+        guard let trackerCoreData = fetchedResultsController?.fetchedObjects?.first else {
+            print("Tracker not found")
+            return nil
+        }
+        
+        return trackerCoreData
+    }
     func isEmpty() -> Bool {
         guard let objects = self.fetchedResultsController?.fetchedObjects else {
             return true
         }
         return objects.isEmpty
+    }
+    
+    func deleteObject(at uuid:UUID) throws{
+        guard let fetchedResultsController = fetchedResultsController,
+              let objects = fetchedResultsController.fetchedObjects else {
+            return
+        }
+        
+        if let objectToDelete = objects.first(where: {
+            $0.uuid == uuid
+        }){
+            context.delete(objectToDelete)
+            try context.save()
+            try fetchedResultsController.performFetch()
+        } else {
+            throw TrackerStoreError.deletingError
+        }
     }
 }
 
@@ -246,8 +283,23 @@ extension TrackerStore{
         try makeFetchRequest(with: predicate)
     }
     
+    func getCompletedTrackers(forDay day: Int, completedID: Set<UUID>) throws {
+        let completedIDArray = Array(completedID)
+        let predicate = NSPredicate(format: "%K CONTAINS %d AND %K IN %@",
+                                    #keyPath(TrackerCoreData.schedule.dayOfWeek), day,
+                                    #keyPath(TrackerCoreData.uuid), completedIDArray)
+        try makeFetchRequest(with: predicate)
+    }
+    
+    func getIncompleteTrackers(forDay day: Int, completedID: Set<UUID>) throws {
+        let completedIDArray = Array(completedID)
+        let predicate = NSPredicate(format: "%K CONTAINS %d AND NOT %K IN %@",
+                                    #keyPath(TrackerCoreData.schedule.dayOfWeek), day,
+                                    #keyPath(TrackerCoreData.uuid), completedIDArray)
+        try makeFetchRequest(with: predicate)
+    }
+    
     private func makeFetchRequest(with predicate:NSPredicate?) throws{
-        
         let fetchRequest = TrackerCoreData.fetchRequest()
         fetchRequest.sortDescriptors = [
             NSSortDescriptor(keyPath: \TrackerCoreData.name, ascending: true)
@@ -263,6 +315,7 @@ extension TrackerStore{
             sectionNameKeyPath: nil,
             cacheName: nil
         )
+        controller.delegate = self
         
         self.fetchedResultsController = controller
         
