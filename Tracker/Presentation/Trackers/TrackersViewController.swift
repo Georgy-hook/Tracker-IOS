@@ -59,6 +59,17 @@ final class TrackersViewController: UIViewController {
         return label
     }()
     
+    private let filterButton: UIButton = {
+        let button = UIButton()
+        button.setTitle(NSLocalizedString("Filters", comment: ""), for: .normal)
+        button.setTitleColor(.white, for: .normal)
+        button.layer.cornerRadius = 16
+        button.backgroundColor = UIColor(named: "YP Blue")
+        button.titleLabel?.font = UIFont.systemFont(ofSize: 17, weight: .regular)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        return button
+    }()
+    
     private let trackersCollectionView = TrackersCollectionView()
     
     //MARK: - Variables
@@ -86,6 +97,7 @@ final class TrackersViewController: UIViewController {
         
         viewModel.$currentDate.bind{ [weak self] _ in
             guard let self = self else { return }
+            datePicker.date = viewModel.currentDate
             viewModel.filterRelevantTrackers(for: viewModel.currentDate)
         }
         
@@ -93,7 +105,19 @@ final class TrackersViewController: UIViewController {
             guard let self = self else { return }
             trackersCollectionView.setCompletedTrackers(with: viewModel.completedID)
         }
+        
+        viewModel.$currentFilter.bind{ [weak self] _ in
+            guard let self = self else { return }
+            viewModel.filterTrackersWithCurrentFilter()
+        }
+        
+        viewModel.viewDidLoad()
+        
         viewModel.configure()
+    }
+    
+    override func viewWillDisappear(_ animated: Bool) {
+        viewModel.viewWillDisappear()
     }
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -105,6 +129,8 @@ final class TrackersViewController: UIViewController {
 //MARK: - Layout
 extension TrackersViewController{
     private func configureUI(){
+        filterButton.addTarget(self, action: #selector(didFilterButtonTapped), for: .touchUpInside)
+        
         view.backgroundColor = UIColor(named: "YP White")
         configureNavBar()
         trackersCollectionView.delegateVC = self        
@@ -114,6 +140,7 @@ extension TrackersViewController{
         view.addSubview(placeholderImageView)
         view.addSubview(initialLabel)
         view.addSubview(trackersCollectionView)
+        view.addSubview(filterButton)
     }
     
     private func applyConstraints(){
@@ -129,8 +156,12 @@ extension TrackersViewController{
             trackersCollectionView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
             trackersCollectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             trackersCollectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            trackersCollectionView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor)
+            trackersCollectionView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
             
+            filterButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            filterButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -16),
+            filterButton.heightAnchor.constraint(equalToConstant: 50),
+            filterButton.widthAnchor.constraint(equalToConstant: 114)
         ])
     }
 }
@@ -159,11 +190,26 @@ extension TrackersViewController{
     
     @objc private func didTapLeftButton(){
         viewModel.resetTempTracker()
+        viewModel.createTracker()
         present(ChooseTypeVC(), animated: true)
     }
     
     @objc private func dateChange(sender: UIDatePicker){
         viewModel.setCurrentDate(with: sender.date)
+    }
+    
+    @objc private func didFilterButtonTapped(){
+        let filterVC = FilterViewController()
+        
+        filterVC.setCurrentFilter(filter: viewModel.currentFilter)
+        
+        filterVC.onFilterReceived = { [weak self] filter in
+            guard let self = self else { return }
+            self.viewModel.setFilter(with: filter)
+        }
+        
+        present(filterVC, animated: true)
+        viewModel.didFilterButtonTapped()
     }
 }
 
@@ -178,11 +224,22 @@ extension TrackersViewController:UISearchResultsUpdating{
 //MARK: - TrackersViewControllerProtocol
 extension TrackersViewController:TrackersViewControllerProtocol {
     func editTracker(with tracker: Tracker, and category: String) {
+        viewModel.editTracker()
         present(HabbitViewController(mode: .edit(tracker: tracker, category: category)), animated: true)
     }
     
     func deleteTracker(_ tracker: Tracker) {
-        viewModel.deleteTracker(tracker)
+        let alert = UIAlertController(title: nil, message: NSLocalizedString("Are you sure you want to delete the tracker?", comment: ""), preferredStyle: .actionSheet)
+        
+        let deleteAction = UIAlertAction(title: NSLocalizedString("Delete", comment: ""), style: .destructive, handler: { (action) in
+            self.viewModel.deleteTracker(tracker)
+        })
+        alert.addAction(deleteAction)
+
+        let cancelAction = UIAlertAction(title: NSLocalizedString("Cancel", comment: ""), style: .cancel)
+        alert.addAction(cancelAction)
+        
+        self.present(alert, animated: true, completion: nil)
     }
     
     func pinTracker(_ tracker: Tracker) {
@@ -204,12 +261,17 @@ extension TrackersViewController:TrackersViewControllerProtocol {
     func getCurrentDate() -> Date{
         return viewModel.currentDate
     }
+    
+    func setFilter(with filter:TrackerFilter){
+        viewModel.setFilter(with: filter)
+    }
 }
 
 extension TrackersViewController{
     private func updatePlaceholder(for state: PlaceholderState) {
         placeholderImageView.isHidden = false
         initialLabel.isHidden = false
+        filterButton.isHidden = true
         switch state {
         case .noData:
             placeholderImageView.image = UIImage(named: "RoundStar")
@@ -221,6 +283,7 @@ extension TrackersViewController{
             searchController.searchBar.isUserInteractionEnabled = true
             placeholderImageView.isHidden = true
             initialLabel.isHidden = true
+            filterButton.isHidden = false
         }
     }
 

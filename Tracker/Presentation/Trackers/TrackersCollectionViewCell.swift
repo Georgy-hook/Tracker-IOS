@@ -69,6 +69,13 @@ class TrackersCollectionViewCell: UICollectionViewCell {
         return label
     }()
     
+    private let pinImageView: UIImageView = {
+        let imageView = UIImageView()
+        imageView.image = UIImage(named: "Pin")
+        imageView.isHidden = true
+        imageView.translatesAutoresizingMaskIntoConstraints = false
+        return imageView
+    }()
     override init(frame: CGRect) {
         super.init(frame: frame)
         backgroundColor = .clear
@@ -101,12 +108,14 @@ extension TrackersCollectionViewCell {
         cardView.backgroundColor = UIColor(named: tracker.color)
         counterLabel.text = String.localizedStringWithFormat(NSLocalizedString("Completed days", comment: "Number of completed days"), completedDays)
         completedDays = delegateVC?.countRecords(forUUID: tracker.id) ?? 6
+        pinImageView.isHidden = !tracker.isPinned
     }
     
     private func addSubviews() {
         addSubview(cardView)
         cardView.addSubview(emojiTextField)
         cardView.addSubview(descriptionLabel)
+        cardView.addSubview(pinImageView)
         addSubview(counterLabel)
         addSubview(checkButton)
     }
@@ -135,7 +144,12 @@ extension TrackersCollectionViewCell {
             
             counterLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
             counterLabel.trailingAnchor.constraint(equalTo: checkButton.leadingAnchor, constant: -8),
-            counterLabel.topAnchor.constraint(equalTo: cardView.bottomAnchor, constant: 16)
+            counterLabel.topAnchor.constraint(equalTo: cardView.bottomAnchor, constant: 16),
+            
+            pinImageView.trailingAnchor.constraint(equalTo: cardView.trailingAnchor, constant: -4),
+            pinImageView.topAnchor.constraint(equalTo: cardView.topAnchor, constant: 12),
+            pinImageView.heightAnchor.constraint(equalToConstant: 24),
+            pinImageView.widthAnchor.constraint(equalToConstant: 24)
         ])
     }
 }
@@ -152,8 +166,8 @@ extension TrackersCollectionViewCell{
     }
     
     func getPreview() -> UITargetedPreview {
-       return UITargetedPreview(view: cardView)
-     }
+        return UITargetedPreview(view: cardView)
+    }
 }
 
 // MARK: - Actions

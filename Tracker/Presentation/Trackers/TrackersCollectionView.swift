@@ -30,7 +30,7 @@ final class TrackersCollectionView: UICollectionView {
         translatesAutoresizingMaskIntoConstraints = false
         showsHorizontalScrollIndicator = false
         showsVerticalScrollIndicator = false
-        
+        self.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: 66, right: 0)
     }
     
     
@@ -113,7 +113,7 @@ extension TrackersCollectionView:UICollectionViewDelegateFlowLayout{
     }
     
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, insetForSectionAt section: Int) -> UIEdgeInsets {
-        return UIEdgeInsets(top: 12, left: params.leftInset, bottom: 16, right: params.rightInset)
+        return UIEdgeInsets(top: 12, left: params.leftInset, bottom: 0, right: params.rightInset)
     }
     
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, minimumInteritemSpacingForSectionAt section: Int) -> CGFloat {
@@ -151,7 +151,7 @@ extension TrackersCollectionView{
         }
         
         if hasPinnedTrackers {
-            let pinnedCategory = TrackerCategory(title: "Закрепленные", trackers: pinnedTrackers)
+            let pinnedCategory = TrackerCategory(title: NSLocalizedString("Pinned", comment: ""), trackers: pinnedTrackers)
             cells.insert(pinnedCategory, at: 0)
         }
     }

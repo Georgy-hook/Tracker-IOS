@@ -68,7 +68,7 @@ final class TrackerStore: NSObject{
         try makeFetchRequest(with: nil)
     }
     
-  
+    
     
     func addNewTracker(_ tracker:Tracker) throws -> TrackerCoreData{
         let trackerCoreData = TrackerCoreData(context: context)
@@ -77,7 +77,7 @@ final class TrackerStore: NSObject{
     }
     
     func updateTracker(_ trackerCoreData: TrackerCoreData, with tracker: Tracker) throws {
-        trackerCoreData.id = tracker.id
+        trackerCoreData.uuid = tracker.id
         trackerCoreData.name = tracker.name
         trackerCoreData.color = tracker.color
         trackerCoreData.emoji = tracker.emoji
@@ -95,7 +95,7 @@ final class TrackerStore: NSObject{
     
     
     func makeTracker(from trackerCoreData: TrackerCoreData) throws -> Tracker{
-        guard let id = trackerCoreData.id else {
+        guard let id = trackerCoreData.uuid else {
             throw TrackerStoreError.decodingErrorInvalidID
         }
         guard let name = trackerCoreData.name else {
@@ -151,9 +151,9 @@ final class TrackerStore: NSObject{
     }
     
     func getTracker(by uuid: String) throws -> Tracker? {
-        let predicate = NSPredicate(format: "id == %@", uuid as CVarArg)
+        let predicate = NSPredicate(format: "uuid == %@", uuid as CVarArg)
         do {
-          try  makeFetchRequest(with: predicate)
+            try  makeFetchRequest(with: predicate)
         } catch{
             print(error)
         }
@@ -173,9 +173,9 @@ final class TrackerStore: NSObject{
     }
     
     func getObject(by uuid:UUID) throws -> TrackerCoreData? {
-        let predicate = NSPredicate(format: "id == %@", uuid as CVarArg)
+        let predicate = NSPredicate(format: "uuid == %@", uuid as CVarArg)
         do {
-          try  makeFetchRequest(with: predicate)
+            try  makeFetchRequest(with: predicate)
         } catch{
             print(error)
         }
@@ -200,7 +200,7 @@ final class TrackerStore: NSObject{
         }
         
         if let objectToDelete = objects.first(where: {
-            $0.id == uuid
+            $0.uuid == uuid
         }){
             context.delete(objectToDelete)
             try context.save()
@@ -283,8 +283,23 @@ extension TrackerStore{
         try makeFetchRequest(with: predicate)
     }
     
+    func getCompletedTrackers(forDay day: Int, completedID: Set<UUID>) throws {
+        let completedIDArray = Array(completedID)
+        let predicate = NSPredicate(format: "%K CONTAINS %d AND %K IN %@",
+                                    #keyPath(TrackerCoreData.schedule.dayOfWeek), day,
+                                    #keyPath(TrackerCoreData.uuid), completedIDArray)
+        try makeFetchRequest(with: predicate)
+    }
+    
+    func getIncompleteTrackers(forDay day: Int, completedID: Set<UUID>) throws {
+        let completedIDArray = Array(completedID)
+        let predicate = NSPredicate(format: "%K CONTAINS %d AND NOT %K IN %@",
+                                    #keyPath(TrackerCoreData.schedule.dayOfWeek), day,
+                                    #keyPath(TrackerCoreData.uuid), completedIDArray)
+        try makeFetchRequest(with: predicate)
+    }
+    
     private func makeFetchRequest(with predicate:NSPredicate?) throws{
-        
         let fetchRequest = TrackerCoreData.fetchRequest()
         fetchRequest.sortDescriptors = [
             NSSortDescriptor(keyPath: \TrackerCoreData.name, ascending: true)

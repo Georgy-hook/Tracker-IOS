@@ -7,12 +7,6 @@
 
 import Foundation
 
-enum TrackerChange {
-    case fix(IndexPath)
-    case insert(IndexPath)
-    case delete(IndexPath)
-}
-
 enum PlaceholderState{
     case noData
     case notFound
@@ -31,7 +25,9 @@ final class TrackersViewModel{
     @Observable
     private(set) var completedID: Set<UUID> = []
     
-    private(set) var changes: [TrackerChange] = []
+    @Observable
+    private(set) var currentFilter: TrackerFilter = .all
+    
     private let trackerStore = TrackerStore()
     private let dateFormatter = AppDateFormatter.shared
     private let trackerRecordStore = TrackerRecordStore()
@@ -54,6 +50,7 @@ final class TrackersViewModel{
         do{
             try trackerStore.searchTrackers(with: searchText, forDay: currentDay)
             self.trackers = trackerStore.trackers
+            currentFilter = .all
             currentState = trackerStore.isEmpty() ? .notFound:.hide
         }catch{
             print("Error searching for trackers: \(error)")
@@ -65,6 +62,7 @@ final class TrackersViewModel{
         do {
             try trackerStore.fetchRelevantTrackers(forDay: currentDay)
             self.trackers = trackerStore.trackers
+            
             currentState = trackerStore.isEmpty() ? .noData:.hide
         }
         catch {
@@ -74,6 +72,7 @@ final class TrackersViewModel{
     
     func setCurrentDate(with date:Date){
         self.currentDate = date
+        currentFilter = .all
         completedID = trackerRecordStore.getCompletedID(with: currentDate)
     }
     
@@ -94,7 +93,6 @@ final class TrackersViewModel{
     func removeCompletedTracker(_ tracker: Tracker) {
         do {
             try trackerRecordStore.removeRecord(for: tracker.id, with: currentDate)
-           // completedID = trackerRecordStore.getCompletedID(with: currentDate)
         } catch {
             print("No delete: \(error)")
         }
@@ -104,13 +102,15 @@ final class TrackersViewModel{
         return trackerRecordStore.countRecords(forUUID: uuid)
     }
     
-    func editTracker(_ tracker: Tracker) {
-        
+    func editTracker() {
+        analyticsService.report(event: .click, screen: .main, item: .edit)
     }
     
     func deleteTracker(_ tracker: Tracker) {
+       
         do{
             try trackerStore.deleteObject(at: tracker.id)
+            analyticsService.report(event: .click, screen: .main, item: .delete)
             
         } catch{
             print(error)
@@ -132,6 +132,57 @@ final class TrackersViewModel{
             filterRelevantTrackers(for: currentDate)
         } catch{
             print(error)
+        }
+    }
+    
+    func createTracker(){
+        analyticsService.report(event: .click, screen: .main, item: .addTrack)
+    }
+    
+    func viewDidLoad(){
+        analyticsService.report(event: .open, screen: .main, item: nil)
+    }
+    
+    func viewWillDisappear(){
+        analyticsService.report(event: .close, screen: .main, item: nil)
+    }
+    
+    func didFilterButtonTapped(){
+        analyticsService.report(event: .click, screen: .main, item: .filter)
+    }
+    
+    func setFilter(with filter:TrackerFilter){
+        currentFilter = filter
+    }
+    
+    func filterTrackersWithCurrentFilter(){
+        let currentDay = dateFormatter.dayOfWeekInt(for: currentDate)
+        switch currentFilter {
+        case .all:
+            do {
+                try trackerStore.fetchRelevantTrackers(forDay: currentDay)
+            } catch {
+                print(error)
+            }
+        case .today:
+            currentDate = Date()
+            self.completedID = trackerRecordStore.getCompletedID(with: currentDate)
+        case .completed:
+            do {
+                self.completedID = trackerRecordStore.getCompletedID(with: currentDate)
+                try trackerStore.getCompletedTrackers(forDay: currentDay, completedID: completedID)
+                self.trackers = trackerStore.trackers
+            } catch {
+                print(error)
+            }
+        case .incomplete:
+            do {
+                self.completedID = trackerRecordStore.getCompletedID(with: currentDate)
+                try trackerStore.getIncompleteTrackers(forDay: currentDay, completedID: completedID)
+                self.trackers = trackerStore.trackers
+            } catch {
+                print(error)
+            }
         }
     }
 }

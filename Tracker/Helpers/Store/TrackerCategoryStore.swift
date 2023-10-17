@@ -131,7 +131,7 @@ final class TrackerCategoryStore: NSObject{
         
         let trackers: [Tracker] = trackerSet.compactMap { trackerEntity in
             guard
-                let id = trackerEntity.id,
+                let id = trackerEntity.uuid,
                 let name = trackerEntity.name,
                 let color = trackerEntity.color,
                 let emoji = trackerEntity.emoji,
