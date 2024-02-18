@@ -12,6 +12,9 @@ protocol TrackersViewControllerProtocol: AnyObject{
     func removeCompletedTracker(_ tracker: Tracker)
     func countRecords(forUUID uuid: UUID) -> Int
     func getCurrentDate() -> Date
+    func editTracker(with tracker: Tracker, and category: String)
+    func deleteTracker(_ tracker: Tracker)
+    func pinTracker(_ tracker: Tracker)
 }
 
 final class TrackersViewController: UIViewController {
@@ -20,7 +23,7 @@ final class TrackersViewController: UIViewController {
     private let searchController: UISearchController = {
         let search = UISearchController(searchResultsController: nil)
         search.searchBar.isUserInteractionEnabled = false
-        search.searchBar.placeholder = "Поиск"
+        search.searchBar.placeholder = NSLocalizedString("Search", comment: "")
         search.hidesNavigationBarDuringPresentation = false
         search.searchBar.tintColor = UIColor(named: "YP Blue")
         search.searchBar.searchTextField.textColor = UIColor(named: "YP Black")
@@ -31,8 +34,12 @@ final class TrackersViewController: UIViewController {
         let datePicker = UIDatePicker()
         datePicker.datePickerMode = .date
         datePicker.preferredDatePickerStyle = .compact
+        datePicker.overrideUserInterfaceStyle = .light
         datePicker.locale = Locale(identifier: "ru_RU")
         datePicker.tintColor = UIColor(named: "YP Blue")
+        datePicker.layer.cornerRadius = 8
+        datePicker.clipsToBounds = true
+        datePicker.backgroundColor = UIColor(named: "DatePicker Background")
         return datePicker
     }()
     
@@ -45,11 +52,22 @@ final class TrackersViewController: UIViewController {
     
     private let initialLabel: UILabel = {
         let label = UILabel()
-        label.text = "Что будем отслеживать?"
+        label.text = NSLocalizedString("What will we track?", comment: "")
         label.textColor = UIColor(named: "YP Black")
         label.font = UIFont.systemFont(ofSize: 12, weight: .medium)
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
+    }()
+    
+    private let filterButton: UIButton = {
+        let button = UIButton()
+        button.setTitle(NSLocalizedString("Filters", comment: ""), for: .normal)
+        button.setTitleColor(.white, for: .normal)
+        button.layer.cornerRadius = 16
+        button.backgroundColor = UIColor(named: "YP Blue")
+        button.titleLabel?.font = UIFont.systemFont(ofSize: 17, weight: .regular)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        return button
     }()
     
     private let trackersCollectionView = TrackersCollectionView()
@@ -79,6 +97,7 @@ final class TrackersViewController: UIViewController {
         
         viewModel.$currentDate.bind{ [weak self] _ in
             guard let self = self else { return }
+            datePicker.date = viewModel.currentDate
             viewModel.filterRelevantTrackers(for: viewModel.currentDate)
         }
         
@@ -86,7 +105,19 @@ final class TrackersViewController: UIViewController {
             guard let self = self else { return }
             trackersCollectionView.setCompletedTrackers(with: viewModel.completedID)
         }
+        
+        viewModel.$currentFilter.bind{ [weak self] _ in
+            guard let self = self else { return }
+            viewModel.filterTrackersWithCurrentFilter()
+        }
+        
+        viewModel.viewDidLoad()
+        
         viewModel.configure()
+    }
+    
+    override func viewWillDisappear(_ animated: Bool) {
+        viewModel.viewWillDisappear()
     }
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -98,6 +129,8 @@ final class TrackersViewController: UIViewController {
 //MARK: - Layout
 extension TrackersViewController{
     private func configureUI(){
+        filterButton.addTarget(self, action: #selector(didFilterButtonTapped), for: .touchUpInside)
+        
         view.backgroundColor = UIColor(named: "YP White")
         configureNavBar()
         trackersCollectionView.delegateVC = self        
@@ -107,6 +140,7 @@ extension TrackersViewController{
         view.addSubview(placeholderImageView)
         view.addSubview(initialLabel)
         view.addSubview(trackersCollectionView)
+        view.addSubview(filterButton)
     }
     
     private func applyConstraints(){
@@ -122,8 +156,12 @@ extension TrackersViewController{
             trackersCollectionView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
             trackersCollectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             trackersCollectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            trackersCollectionView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor)
+            trackersCollectionView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
             
+            filterButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            filterButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -16),
+            filterButton.heightAnchor.constraint(equalToConstant: 50),
+            filterButton.widthAnchor.constraint(equalToConstant: 114)
         ])
     }
 }
@@ -131,7 +169,7 @@ extension TrackersViewController{
 //MARK: - NavigationBar
 extension TrackersViewController{
     private func configureNavBar(){
-        self.title = "Трекеры"
+        self.title = NSLocalizedString("Trackers", comment: "")
         self.navigationController?.navigationBar.prefersLargeTitles = true
         self.navigationController?.navigationBar.tintColor = UIColor(named: "YP Black")
         
@@ -152,11 +190,26 @@ extension TrackersViewController{
     
     @objc private func didTapLeftButton(){
         viewModel.resetTempTracker()
+        viewModel.createTracker()
         present(ChooseTypeVC(), animated: true)
     }
     
     @objc private func dateChange(sender: UIDatePicker){
         viewModel.setCurrentDate(with: sender.date)
+    }
+    
+    @objc private func didFilterButtonTapped(){
+        let filterVC = FilterViewController()
+        
+        filterVC.setCurrentFilter(filter: viewModel.currentFilter)
+        
+        filterVC.onFilterReceived = { [weak self] filter in
+            guard let self = self else { return }
+            self.viewModel.setFilter(with: filter)
+        }
+        
+        present(filterVC, animated: true)
+        viewModel.didFilterButtonTapped()
     }
 }
 
@@ -170,6 +223,29 @@ extension TrackersViewController:UISearchResultsUpdating{
 
 //MARK: - TrackersViewControllerProtocol
 extension TrackersViewController:TrackersViewControllerProtocol {
+    func editTracker(with tracker: Tracker, and category: String) {
+        viewModel.editTracker()
+        present(HabbitViewController(mode: .edit(tracker: tracker, category: category)), animated: true)
+    }
+    
+    func deleteTracker(_ tracker: Tracker) {
+        let alert = UIAlertController(title: nil, message: NSLocalizedString("Are you sure you want to delete the tracker?", comment: ""), preferredStyle: .actionSheet)
+        
+        let deleteAction = UIAlertAction(title: NSLocalizedString("Delete", comment: ""), style: .destructive, handler: { (action) in
+            self.viewModel.deleteTracker(tracker)
+        })
+        alert.addAction(deleteAction)
+
+        let cancelAction = UIAlertAction(title: NSLocalizedString("Cancel", comment: ""), style: .cancel)
+        alert.addAction(cancelAction)
+        
+        self.present(alert, animated: true, completion: nil)
+    }
+    
+    func pinTracker(_ tracker: Tracker) {
+        viewModel.pinTracker(tracker)
+    }
+    
     func addCompletedTracker(_ tracker: Tracker) {
         viewModel.addCompletedTracker(tracker)
     }
@@ -185,24 +261,29 @@ extension TrackersViewController:TrackersViewControllerProtocol {
     func getCurrentDate() -> Date{
         return viewModel.currentDate
     }
+    
+    func setFilter(with filter:TrackerFilter){
+        viewModel.setFilter(with: filter)
+    }
 }
 
-//MARK: - Filter methods
 extension TrackersViewController{
     private func updatePlaceholder(for state: PlaceholderState) {
         placeholderImageView.isHidden = false
         initialLabel.isHidden = false
+        filterButton.isHidden = true
         switch state {
         case .noData:
             placeholderImageView.image = UIImage(named: "RoundStar")
-            initialLabel.text = "Что будем отслеживать?"
+            initialLabel.text = NSLocalizedString("What will we track?", comment: "")
         case .notFound:
             placeholderImageView.image = UIImage(named: "NotFound")
-            initialLabel.text = "Ничего не найдено"
+            initialLabel.text = NSLocalizedString("Nothing found", comment: "")
         case .hide:
             searchController.searchBar.isUserInteractionEnabled = true
             placeholderImageView.isHidden = true
             initialLabel.isHidden = true
+            filterButton.isHidden = false
         }
     }
 

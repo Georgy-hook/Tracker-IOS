@@ -14,21 +14,15 @@ final class HabbitViewModel{
     private let tempStorage = TempStorage.shared
     private let trackerCategoryStore = TrackerCategoryStore()
     private let trackerStore = TrackerStore()
-    private let mode: HabbitViewControllerMode
+    let mode: HabbitViewControllerMode
     
     init(mode:HabbitViewControllerMode) {
         self.mode = mode
-        do {
-            switch mode {
-            case .create:
-                tempStorage.setID(UUID())
-            case .edit(let ID):
-                let id = ID.uuidString
-                let tracker = try trackerStore.getTracker(by: id)
-                tempStorage.setTracker(tracker)
-            }
-        } catch {
-            print(error)
+        switch mode {
+        case .create:
+            tempStorage.setID(UUID())
+        case .edit(let tracker, let category):
+            tempStorage.set(with: tracker, and: category)
         }
     }
     
@@ -56,6 +50,18 @@ final class HabbitViewModel{
         return tempStorage.getShedule() ?? []
     }
     
+    func getName() -> String{
+        return tempStorage.getName() ?? ""
+    }
+    
+    func getEmoji() -> String{
+        return tempStorage.getEmoji() ?? ""
+    }
+    
+    func getColor() -> String{
+        return tempStorage.getColor() ?? ""
+    }
+
     func shouldUpdateUI(){
         let trackerIsComplete = tempStorage.buildTracker() != nil
         completed = trackerIsComplete ? true : false
@@ -65,6 +71,17 @@ final class HabbitViewModel{
         guard let tracker = tempStorage.buildTracker() else { return }
         guard let title = tempStorage.getCategory() else { return }
         
-        trackerCategoryStore.addTracker(tracker, toCategoryWithTitle: title)
+        switch mode{
+        case .create:
+            trackerCategoryStore.addTracker(tracker, toCategoryWithTitle: title)
+        case .edit(_, _):
+            do{
+                let object = try trackerStore.getObject(by: tracker.id)
+                guard let object = object else{ return }
+                try trackerStore.updateTracker(object, with: tracker)
+            } catch{
+                print(error)
+            }
+        }
     }
 }

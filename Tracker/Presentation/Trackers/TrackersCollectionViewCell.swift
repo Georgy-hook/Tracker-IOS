@@ -15,7 +15,7 @@ class TrackersCollectionViewCell: UICollectionViewCell {
     
     private var completedDays = 0 {
         didSet {
-            counterLabel.text = dayToString(completedDays)
+            counterLabel.text = String.localizedStringWithFormat(NSLocalizedString("Completed days", comment: "Number of completed days"), completedDays)
         }
     }
     
@@ -69,9 +69,16 @@ class TrackersCollectionViewCell: UICollectionViewCell {
         return label
     }()
     
+    private let pinImageView: UIImageView = {
+        let imageView = UIImageView()
+        imageView.image = UIImage(named: "Pin")
+        imageView.isHidden = true
+        imageView.translatesAutoresizingMaskIntoConstraints = false
+        return imageView
+    }()
     override init(frame: CGRect) {
         super.init(frame: frame)
-        backgroundColor = .white
+        backgroundColor = .clear
         addSubviews()
         applyConstraints()
         checkButton.addTarget(self, action: #selector(checkButtonDidTapped), for: .touchUpInside)
@@ -99,14 +106,16 @@ extension TrackersCollectionViewCell {
         emojiTextField.text = tracker.emoji
         descriptionLabel.text = tracker.name
         cardView.backgroundColor = UIColor(named: tracker.color)
-        counterLabel.text = dayToString(completedDays)
+        counterLabel.text = String.localizedStringWithFormat(NSLocalizedString("Completed days", comment: "Number of completed days"), completedDays)
         completedDays = delegateVC?.countRecords(forUUID: tracker.id) ?? 6
+        pinImageView.isHidden = !tracker.isPinned
     }
     
     private func addSubviews() {
         addSubview(cardView)
         cardView.addSubview(emojiTextField)
         cardView.addSubview(descriptionLabel)
+        cardView.addSubview(pinImageView)
         addSubview(counterLabel)
         addSubview(checkButton)
     }
@@ -135,27 +144,13 @@ extension TrackersCollectionViewCell {
             
             counterLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
             counterLabel.trailingAnchor.constraint(equalTo: checkButton.leadingAnchor, constant: -8),
-            counterLabel.topAnchor.constraint(equalTo: cardView.bottomAnchor, constant: 16)
+            counterLabel.topAnchor.constraint(equalTo: cardView.bottomAnchor, constant: 16),
+            
+            pinImageView.trailingAnchor.constraint(equalTo: cardView.trailingAnchor, constant: -4),
+            pinImageView.topAnchor.constraint(equalTo: cardView.topAnchor, constant: 12),
+            pinImageView.heightAnchor.constraint(equalToConstant: 24),
+            pinImageView.widthAnchor.constraint(equalToConstant: 24)
         ])
-    }
-    
-    private func dayToString(_ num: Int) -> String {
-        let suffix: String
-        
-        switch num % 10 {
-        case 1 where (num - 1) % 100 != 10:
-            suffix = "день"
-        case 2 where (num - num % 10) % 100 != 10:
-            suffix = "дня"
-        case 3 where (num - num % 10) % 100 != 10:
-            suffix = "дня"
-        case 4 where (num - num % 10) % 100 != 10:
-            suffix = "дня"
-        default:
-            suffix = "дней"
-        }
-        
-        return "\(num) \(suffix)"
     }
 }
 
@@ -170,18 +165,9 @@ extension TrackersCollectionViewCell{
         checkButtonShouldTapped(with: checkButton.isSelected)
     }
     
-    func getPreview() -> UIViewController? {
-        let viewController = UIViewController()
-        let anotherCardView = cardView
-        viewController.view.addSubview(anotherCardView)
-        NSLayoutConstraint.activate([
-            cardView.leadingAnchor.constraint(equalTo: viewController.view.leadingAnchor),
-            cardView.trailingAnchor.constraint(equalTo: viewController.view.trailingAnchor),
-            cardView.topAnchor.constraint(equalTo: viewController.view.topAnchor),
-            cardView.bottomAnchor.constraint(equalTo: viewController.view.bottomAnchor)
-        ])
-         return viewController
-     }
+    func getPreview() -> UITargetedPreview {
+        return UITargetedPreview(view: cardView)
+    }
 }
 
 // MARK: - Actions

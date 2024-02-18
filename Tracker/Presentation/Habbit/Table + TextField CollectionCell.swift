@@ -10,7 +10,11 @@ class ListCollectionViewCell:UICollectionViewCell{
     
     // MARK: - Variables
     static let reuseId = "ListCollectionViewCell"
-    weak var delegateVC: HabbitViewControllerProtocol?
+    weak var delegateVC: HabbitViewControllerProtocol?{
+        didSet{
+            trackerName.text = delegateVC?.getName()
+        }
+    }
     
     // MARK: - UI Elements
     private let trackerName: TextFieldWithPadding = {
