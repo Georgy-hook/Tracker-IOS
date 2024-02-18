@@ -31,7 +31,7 @@ UICollectionView, SPM, Cocoapods, CoreData, Snapshot tests, MVVM, Localizable, S
 
 ## **Ссылки**
 
-[Макет Figma]([https://www.figma.com/file/l0IMG3Eys35fUrbvArtwsR/YP-Quiz?node-id=34%3A243](https://www.figma.com/file/gONgrq8Q5PfEs1LUo7KX4h/Tracker?type=design&node-id=0-1&mode=design))
+[Макет Figma](https://www.figma.com/file/gONgrq8Q5PfEs1LUo7KX4h/Tracker?type=design&node-id=0-1&mode=design)
 
 ## **Технические требования**
 
